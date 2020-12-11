@@ -9,8 +9,8 @@ import (
 )
 
 type PasswordRule struct {
-	MinOccurrence int
-	MaxOccurrence int
+	Pos1Occurrence int
+	Pos2Occurrence int
 	MustContain   string
 }
 
@@ -45,22 +45,28 @@ func main() {
 		// get rid of the : in the second item
 		s[1] = strings.Replace(s[1], ":", "", 1)
 
-		// get the min and max occurrence of the character
+		// get the positional requirements
 		occ := strings.Split(s[0], "-")
-		min, _ := strconv.Atoi(occ[0])
-		max, _ := strconv.Atoi(occ[1])
+		pos1, _ := strconv.Atoi(occ[0])
+		pos2, _ := strconv.Atoi(occ[1])
 
 		// create a struct with the password rules
 		rule = PasswordRule{
-			MinOccurrence: min,
-			MaxOccurrence: max,
+			Pos1Occurrence: pos1,
+			Pos2Occurrence: pos2,
 			MustContain: s[1],
 		}
 
 		// evaluate whether the password meets the requirements
-		charCount := strings.Count(s[2], s[1])
-		if charCount >= rule.MinOccurrence && charCount <= rule.MaxOccurrence {
+		if string(s[2][rule.Pos1Occurrence-1]) == rule.MustContain && string(s[2][rule.Pos2Occurrence-1]) == rule.MustContain {
+			// invaid: rule.MustContain is in both places
+			continue
+		}
+
+		if string(s[2][rule.Pos1Occurrence-1]) == rule.MustContain || string(s[2][rule.Pos2Occurrence-1]) == rule.MustContain {
+			// valid: it's in one or the other location
 			validPasswords += 1
+			continue
 		}
 	}
 }
