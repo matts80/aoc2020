@@ -13,20 +13,9 @@ func main() {
 	var (
 		line string
 		trees int
-		start int = 3
+		start int 
+		solution int = 1
 	)
-
-	// variable for our different paths
-	var paths = []struct{
-		right int
-		down  int
-	}{
-		{right: 1, down: 1},
-		{right: 3, down: 1},
-		{right: 5, down: 1},
-		{right: 7, down: 1},
-		{right: 1, down: 2},
-	}
 
 	// file object
 	f, err := os.Open("day3_input.txt")
@@ -39,21 +28,52 @@ func main() {
 	rdr := bufio.NewReader(f)
 
 	// read the first line and throw it away
-	// since we know we're going to advance spaces at the begining 
+	// we will only advance forward not read anything from this line
 	line, _ = rdr.ReadString('\n')
 	line = strings.Replace(line, "\n", "", 1)
 
-	// read through the file once for each path
-	for _, path := range paths {
+	var paths = []struct{
+		right int
+		down int
+	}{
+		{right: 1, down: 1},
+		{right: 3, down: 1},
+		{right: 5, down: 1},
+		{right: 7, down: 1},
+		{right: 1, down: 2},
+	}
+
+	for k, path := range paths {
 		start = path.right
 		trees = 0
+
+		if k > 0 {
+			// next path; reread the file
+
+			// file object
+			f, err := os.Open("day3_input.txt")
+			if err != nil {
+				panic(err)
+			}
+			rdr = bufio.NewReader(f)
+
+			// read the first line and throw it away
+			// we will only advance forward not read anything from this line
+			line, _ = rdr.ReadString('\n')
+			line = strings.Replace(line, "\n", "", 1)
+		}
+
+		Read:
 		for {
-			// path.down tells us how many lines to read
+			// read the next line(s)
 			for readCounter := 0; readCounter < path.down; readCounter++ {
 				line, err = rdr.ReadString('\n')
-				if err == io.EOF {
+				if err == io.EOF{
 					// EOF
 					fmt.Printf("%d trees encountered\n", trees)
+					solution *= trees
+					f.Close()
+					break Read
 				}
 				line = strings.ReplaceAll(line, "\n", "")
 			}
@@ -71,4 +91,5 @@ func main() {
 			start += path.right
 		}
 	}
+	fmt.Printf("Solution: %d\n", solution)
 }
