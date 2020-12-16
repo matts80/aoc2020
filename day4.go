@@ -7,15 +7,101 @@ import (
 	"io"
 	"strings"
 	"strconv"
+	"regexp"
 )
 
-var Reset   = "\033[0m"
-var Red     = "\033[31m"
-var Green   = "\033[32m"
+var (
+	Reset = "\033[0m"
+	Red = "\033[31m"
+	Green = "\033[32m"
+	X = "\n\t" + Red + "\u2717 " + Reset
+	Check = Green + "\u2713 " + Reset
+)
+
+type validator func(string) bool
+
+var requiredFields = []string{"ecl", "pid", "eyr", "byr", "iyr", "hgt", "hcl"}
+var validEcl = "amb blu brn gry grn hzl oth"
+var validPassport = map[string]validator {
+	"byr": func(value string) bool {
+		year, err := strconv.Atoi(value)
+		if err != nil {
+			fmt.Printf(X + "byr (%s) is not a number" + Reset, value)
+			return false
+		}
+
+		if 1920 < year && year > 2002 {
+			fmt.Printf(X + "byr (%s) is not between 1920 and 2002" + Reset, value)
+			return false
+		}
+		return true
+	},
+	"iyr": func(value string) bool {
+		year, err := strconv.Atoi(value)
+		if err != nil {
+			fmt.Printf(X + "iyr (%s) is not a number" + Reset, value)
+			return false
+		}
+
+		if 2010 < year && year > 2020 {
+			fmt.Printf(X + "iyr (%s) is not between 2010 and 2020" + Reset, value)
+			return false
+		}
+		return true
+	},
+	"eyr": func(value string) bool {
+		year, err := strconv.Atoi(value)
+		if err != nil {
+			fmt.Printf(X + "eyr (%s) is not a number" + Reset, value)
+			return false
+		}
+
+		if 2020 < year && year > 2030 {
+			fmt.Printf(X + "eyr (%s) is not between 2020 and 2030" + Reset, value)
+			return false
+		}
+		return true
+	},
+	"hgt": func(value string) bool {
+		return true
+	},
+	"hcl": func(value string) bool {
+		return true
+	},
+	"ecl": func(value string) bool {
+		if !strings.ContainsAny(value, validEcl) {
+			fmt.Printf(X + "invalid eye color" + Reset)
+			return false
+		}
+		return true
+	},
+	"pid": func(value string) bool {
+		matched, _ := regexp.Match(`\d{9}`, []byte(value)) 
+		if !matched {
+			fmt.Printf(X + "pid (%s) is not a 9-digit number" + Reset, value)
+			return false
+		}
+		return true
+	},
+}
+
+func isValidPassport(passport map[string]string) bool {
+	for key, validatorFunc:= range validPassport {
+		value, ok := passport[key]
+		if !ok {
+			continue
+		}
+		if !validatorFunc(value) {
+			return false
+		}
+	}
+	return true
+}
 
 func main() {
+
 	// file object
-	f, err := os.Open("day4_input.txt")
+	f, err := os.Open("day4_test.txt")
 	if err != nil {
 		panic(err)
 	}
@@ -28,15 +114,14 @@ func main() {
 		validPassports int
 	)
 
-	requiredFields := []string{"ecl", "pid", "eyr", "byr", "iyr", "hgt", "hcl"}
-
 	// read up until a blank line
+	passport := make(map[string]string)
 	for {
 		valid := true
 
 		buf, err = rdr.ReadString('\n')
 		if err == io.EOF {
-			fmt.Printf(Green + "\n%d valid passports\n" + Reset, validPassports)
+			fmt.Printf("\n%d valid passports\n" , validPassports)
 			break
 		}
 		buf = strings.Replace(buf, "\n", " ", 1)
@@ -54,114 +139,31 @@ func main() {
 				}
 			}
 
+			// part 2
 			if valid == true {
-				// do some data validation
-
-				// tokenize into key:value
+				// do data validation
+				// build a map with key value pairs
 				tokens := strings.Fields(fields)
-				for i := 0; i <= len(tokens)-1; i += 2 {
-					v := tokens[i+1]
+				fmt.Printf("\nTesting %v \u21e8 ", tokens)
 
-					switch tokens[i] {
-					case "byr":
-						year, err := strconv.Atoi(v)
-						if err != nil {
-							valid = false
-						}
-						// four digits; at least 1920 and at most 2002
-						if year < 1920 || year > 2002 {
-							//fmt.Printf(Red + "%v: byr (%s) not between 1920 and 2002 \u2717\n" + Reset, tokens, v)
-							valid = false
-						}
-					case "iyr":
-						year, err := strconv.Atoi(v)
-						if err != nil {
-							valid = false
-						}
-						// four digits; at least 2010 and at most 2020
-						if year < 2010 || year > 2020 {
-							//fmt.Printf(Red + "%v: iyr (%s) not between 2010 and 2020 \u2717\n" + Reset, tokens, v)
-							valid = false
-						}
-					case "eyr":
-						year, err := strconv.Atoi(v)
-						if err != nil {
-							valid = false
-						}
-						// four digits; at least 2020 and at most 2030
-						if year < 2020 || year > 2030 {
-							//fmt.Printf(Red + "%v: eyr (%s) not between 2020 and 2030 \u2717\n" + Reset, tokens, v)
-							valid = false
-						}
-					case "hgt":
-						// a number followed by either cm or in:
-						// 	  If cm, the number must be at least 150 and at most 193.
-						//    If in, the number must be at least 59 and at most 76.
-						if strings.Contains(v, "cm") {
-							hgt := strings.Split(v, "cm")[0]
-							height, _  := strconv.Atoi(hgt)
-							if height < 150 || height > 193 {
-								//fmt.Printf(Red + "%v: height (%d) not between 150 and 193 \u2717\n" + Reset, tokens, height)
-								valid = false
-							}
-						}
+				for i := 0; i <= len(tokens)-1; i += 2{
+					passport[tokens[i]] = tokens[i+1]
 
-						if strings.Contains(v, "in") {
-							hgt := strings.Split(v, "in")[0]
-							height, _ := strconv.Atoi(hgt)
-							if height < 59 || height > 76 {
-								//fmt.Printf(Red + "%v: height (%d) not between 59 and 76 \u2717\n" + Reset, tokens, v)
-								valid = false
-							}
-						}
-
-						if !strings.Contains(v, "in") && !strings.Contains(v, "cm") {
-							//fmt.Printf(Red + "%v: height %s doesn't contain cm or in \u2717\n" + Reset, tokens, v)
-							valid = false
-						}
-					case "hcl":
-						// a # followed by exactly six characters 0-9 or a-f
-						hcl := strings.Split(v, "")
-
-						if hcl[0] != "#" {
-							//fmt.Printf(Red + "%v: hcl does not start with pound (%s) \u2717\n" + Reset, tokens, hcl[0])
-							valid = false
-						}
-
-						if len(hcl[1:]) != 6 {
-							//fmt.Printf(Red + "%v: hcl is not 6 characters long (length = %d) \u2717\n" + Reset, hcl, len(hcl[1:]))
-							valid = false
-						}
-
-						if strings.ContainsAny(strings.Join(hcl[1:], ""), "ghijklmnopqrstuvwxyz") {
-							//fmt.Printf(Red + "%v: contains a letter above f \u2717\n" + Reset, hcl[1:])
-							valid = false
-						}
-					case "ecl":
-						// exactly one of: amb blu brn gry grn hzl oth
-						ecl := "amb blu brn gry grn hzl oth"
-						if !strings.ContainsAny(v, ecl) {
-							//fmt.Printf(Red + "%v: does not contain %s \u2717\n" + Reset, tokens, ecl)
-							valid = false
-						}
-					case "pid":
-						// a nine-digit number, including leading zeroes
-						if len(strings.Split(v, "")) != 9 {
-							//fmt.Printf(Red + "%v: %s is not 9 digits \u2717\n" + Reset, tokens, v)
-							valid = false
-						}
-
-						if strings.ContainsAny(v, "abcdefghijklmnopqrstuvwxyz") {
-							//fmt.Printf(Red + "%v: %s contains a letter\n" + Reset, tokens, v)
-							valid = false
-						}
-					default:
+					if tokens[i] == "cid" {
+						// ignore
+						continue
 					}
+
+					// test for validity
+					if !isValidPassport(passport) {
+						valid = false
+					}
+					// remove the key for the next run
+					delete(passport, tokens[i])
 				}
 			}
-
 			if valid == true {
-				fmt.Printf(Green + "%s \u2713\n" + Reset, fields)
+				fmt.Printf(Check + "\n" + Reset)
 				validPassports += 1
 			}
 			rec = ""
