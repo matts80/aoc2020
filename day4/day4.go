@@ -106,7 +106,7 @@ var validPassport = map[string]validator {
 		return true
 	},
 	"pid": func(value string) bool {
-		matched, _ := regexp.Match(`\d{9}`, []byte(value)) 
+		matched, _ := regexp.Match(`^\d{9}$`, []byte(value)) 
 		if !matched {
 			fmt.Printf(X + "pid (%s) is not a 9-digit number" + Reset, value)
 			return false
