@@ -30,7 +30,7 @@ var validPassport = map[string]validator {
 			return false
 		}
 
-		if 1920 < year && year > 2002 {
+		if 1920 > year || year > 2002 {
 			fmt.Printf(X + "byr (%s) is not between 1920 and 2002" + Reset, value)
 			return false
 		}
@@ -43,7 +43,7 @@ var validPassport = map[string]validator {
 			return false
 		}
 
-		if 2010 < year && year > 2020 {
+		if 2010 > year || year > 2020 {
 			fmt.Printf(X + "iyr (%s) is not between 2010 and 2020" + Reset, value)
 			return false
 		}
@@ -56,21 +56,51 @@ var validPassport = map[string]validator {
 			return false
 		}
 
-		if 2020 < year && year > 2030 {
+		if 2020 > year || year > 2030 {
 			fmt.Printf(X + "eyr (%s) is not between 2020 and 2030" + Reset, value)
 			return false
 		}
 		return true
 	},
 	"hgt": func(value string) bool {
+		matched, _ := regexp.Match(`^\d+(cm|in)`, []byte(value))
+		if !matched {
+			fmt.Printf(X + "hgt (%s) is not valid" + Reset, value)
+			return false
+		}
+	
+		if strings.Contains(value, "cm") {
+			h := strings.Split(value, "cm")[0]
+			hInt, _ := strconv.Atoi(h)
+			if 150 > hInt || hInt > 193 {
+				fmt.Printf(X + "hgt (%s) is not between 150 and 193" + Reset, value)
+				return false
+			}
+		}
+
+		if strings.Contains(value, "in") {
+			h := strings.Split(value, "in")[0]
+			hInt, _ := strconv.Atoi(h)
+			if 59 > hInt || hInt > 76 {
+				fmt.Printf(X + "hgt (%s) is not between 59 and 76" + Reset, value)
+				return false
+			}
+		}
+
 		return true
 	},
 	"hcl": func(value string) bool {
+		matched, _ := regexp.Match(`^#[a-fA-F0-9]{6}$`, []byte(value))
+		if !matched {
+			fmt.Printf(X + "hcl (%s) is not a valid hex code" + Reset, value)
+			return false
+		}
 		return true
 	},
 	"ecl": func(value string) bool {
-		if !strings.ContainsAny(value, validEcl) {
-			fmt.Printf(X + "invalid eye color" + Reset)
+		matched, _ := regexp.Match(`(amb|blu|brn|gry|grn|hzl|oth)`, []byte(value))
+		if !matched {
+			fmt.Printf(X + "ecl (%s) is an invalid eye color" + Reset, value)
 			return false
 		}
 		return true
@@ -101,7 +131,7 @@ func isValidPassport(passport map[string]string) bool {
 func main() {
 
 	// file object
-	f, err := os.Open("day4_test.txt")
+	f, err := os.Open("day4_input.txt")
 	if err != nil {
 		panic(err)
 	}
