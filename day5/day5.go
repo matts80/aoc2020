@@ -1,11 +1,12 @@
 package main
 
 import (
-	"fmt"
-	"os"
 	"bufio"
-	"strings"
+	"fmt"
 	"io"
+	"os"
+	"sort"
+	"strings"
 )
 
 // newRowSlice returns a new slice with the 128 row bits
@@ -19,7 +20,7 @@ func newRowSlice() []int {
 
 // newColSlice returns a new slice with the 8 column bits
 func newColSlice() []int {
-	var s[]int
+	var s []int
 	for i := 0; i <= 7; i++ {
 		s = append(s, i)
 	}
@@ -56,6 +57,7 @@ func main() {
 	rdr := bufio.NewReader(f)
 
 	var seatId int
+	var seats []int
 	for {
 		partitionScheme, err := rdr.ReadString('\n')
 		if err == io.EOF {
@@ -67,8 +69,22 @@ func main() {
 		rowNumber := binaryPartition(partitionScheme, 0, newRowSlice())[0]
 		colNumber := binaryPartition(partitionScheme, 7, newColSlice())[0]
 
-		if rowNumber * 8 + colNumber > seatId {
-			seatId = rowNumber * 8 + colNumber
+		if rowNumber*8+colNumber > seatId {
+			seatId = rowNumber*8 + colNumber
+		}
+
+		seats = append(seats, rowNumber*8+colNumber)
+	}
+
+	// sort the seatId's
+	sort.Slice(seats, func(i, j int) bool {
+		return seats[i] < seats[j]
+	})
+
+	for i := 0; i <= len(seats)-1; i++ {
+		if seats[i+1] - seats[i] > 1 {
+			fmt.Printf("Your Set ID is %d\n", seats[i]+1)
+			break
 		}
 	}
 
